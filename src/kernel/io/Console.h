@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include "../types/String.h"
+#include "io.h"
 
 enum class ConsoleColors
 {
@@ -30,19 +31,32 @@ namespace OS
     class Console
     {
     public:
-        Console();
+        static void print(const char* str, ...);
 
-        void print(const char* str, ...);
+        static void clear();
 
-        void clear();
+        static void setTextColor(ConsoleColors color);
 
-        void setTextColor(ConsoleColors color);
+        static void setBackgroundColor(ConsoleColors color);
 
-        void setBackgroundColor(ConsoleColors color);
+        static void deleteLastCharacter();
+
+        static void moveCursor(int val);
+
+        static void update();
     protected:
-        char* currentVideoPtr = (char*)0xb8000;
+        static uint8_t* currentVideoPtr;
 
-        uint8_t getVideoMemoryAddress(int row, int column);
+        static uint8_t getVideoMemoryAddress(int row, int column);
+
+        static void update_cursor(int x, int y);
+
+        static void update_cursor(uint16_t index);
+
+        static uint8_t* getCursorAddress();
+
+    private:
+        static uint16_t cursor_index;
     };
 }
 

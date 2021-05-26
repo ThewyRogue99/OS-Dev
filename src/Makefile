@@ -5,6 +5,9 @@ OBJ = ${C_SOURCES:.cpp=.o}
 
 all: os-image
 
+run: ../bin/boot/os-image.bin
+	qemu-system-x86_64 ../bin/boot/os-image.bin
+
 os-image: kernel.bin boot_sect
 	cat ../bin/boot/boot_sect.bin ../bin/boot/kernel.bin > ../bin/boot/os-image.bin
 

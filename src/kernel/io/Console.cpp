@@ -3,9 +3,24 @@
 #define VIDEO_MEMORY_START 0xB8000
 #define VIDEO_MEMORY_END 0xB8FA0
 
+uint8_t* OS::Console::currentVideoPtr = (uint8_t*)VIDEO_MEMORY_START;
+
+uint16_t OS::Console::cursor_index = 0;
+
 namespace OS
 {
-    Console::Console() { }
+    void Console::update()
+    {
+        cursor_index = ((int)currentVideoPtr - VIDEO_MEMORY_START) / 2;
+        update_cursor(cursor_index);
+    }
+
+    void Console::moveCursor(int val)
+    {
+        uint8_t* futureCursorPtr = getCursorAddress() + val * 2;
+        if(futureCursorPtr < currentVideoPtr)
+            cursor_index += val;
+    }
 
     void Console::print(const char* str, ...)
     {
@@ -26,9 +41,18 @@ namespace OS
                 }
                 else if(nextChar == 's')
                     print(va_arg(args, const char*));
+                else if(nextChar == 'c')
+                {
+                    const char _str[] = { (char)va_arg(args, int), '\0' };
+                    print(_str);
+                }
                 else
                     print("%");
             }
+            else if(charToPrint == '\n')
+		        currentVideoPtr += 0xA0 - ((uint32_t)currentVideoPtr - VIDEO_MEMORY_START) % 0xA0;
+	        else if(charToPrint == '\r')
+		        currentVideoPtr -= ((uint32_t)currentVideoPtr - VIDEO_MEMORY_START) % 0xA0;
             else
             {
                 *currentVideoPtr = charToPrint;
@@ -45,6 +69,22 @@ namespace OS
 
         for(int i = 0; i < VIDEO_MEMORY_END - VIDEO_MEMORY_START; i += 2)
             *(console_start + i) = 0x0;
+    }
+
+    void Console::deleteLastCharacter()
+    {
+        uint8_t* videoPtrCopy = currentVideoPtr - 2;
+
+        if((int)videoPtrCopy >= VIDEO_MEMORY_START)
+        {
+            currentVideoPtr -= 2;
+            *currentVideoPtr = 0;
+        }
+    }
+
+    uint8_t* Console::getCursorAddress()
+    {
+        return (uint8_t*)(cursor_index * 2 + VIDEO_MEMORY_START);
     }
 
     uint8_t Console::getVideoMemoryAddress(int row, int column)
@@ -72,5 +112,25 @@ namespace OS
             uint8_t* byte = (uint8_t*)(console_start + i);
             *byte = (*byte & 0x0F) | ((uint8_t)color << 4);
         }
+    }
+
+    void Console::update_cursor(int x, int y)
+    {
+        uint16_t pos = y * 80 /*Text-Mode width*/ + x;
+    
+        IO::port_byte_out(0x3D4, 0x0F);
+        IO::port_byte_out(0x3D5, (uint8_t) (pos & 0xFF));
+
+        IO::port_byte_out(0x3D4, 0x0E);
+        IO::port_byte_out(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
+    }
+
+    void Console::update_cursor(uint16_t index)
+    {
+        IO::port_byte_out(0x3D4, 0x0F);
+        IO::port_byte_out(0x3D5, (uint8_t) (index & 0xFF));
+
+        IO::port_byte_out(0x3D4, 0x0E);
+        IO::port_byte_out(0x3D5, (uint8_t) ((index >> 8) & 0xFF));
     }
 }
