@@ -1,27 +1,41 @@
 #include "io/Console.h"
 #include "io/Keyboard.h"
-#include "memory/KernelStack.h"
+#include "memory/Stack.h"
 #include "memory/Memory.h"
+#include "memory/Heap.h"
+#include "kernel.h"
+#include "types/String.h"
 
 using namespace OS;
+using namespace Memory;
 
 void keyCallback(int state, int scan_code, int key_code);
 
-void main()
+Heap KernelHeap;
+Stack<uint8_t> KernelStack;
+
+void* operator new(size_t size) { return KernelHeap.malloc(size); }
+void* operator new[](size_t size) { return KernelHeap.malloc(size); }
+void operator delete(void* ptr, unsigned int) { KernelHeap.free(ptr); }
+
+KERNEL_MAIN
 {
     Console::clear();
     Console::setTextColor(ConsoleColors::White);
     Console::setBackgroundColor(ConsoleColors::Blue);
 
+    KernelStack = Stack<uint8_t>((uint8_t*)KERNEL_STACK_START, (uint8_t*)KERNEL_STACK_END);
+    KernelHeap = Heap((uint8_t*)KERNEL_HEAP_START, (uint8_t*)KERNEL_HEAP_END);
+    KernelHeap.initHeap();
+
+    String str = "Hello, World!";
+    str += "\nHow are You?";
+
+    Console::print("%s\n", str.c_str());
+
     Keyboard::registerKeyCallback(keyCallback);
 
-    Memory::KernelStack<int> kernel_stack((uint8_t*)KERNEL_MEMORY_START, 100);
-
-    kernel_stack.push(15);
-    kernel_stack.push(20);
-    Console::print("1st: %i   2st: %i\n", kernel_stack.pop(), kernel_stack.pop());
-
-    while(true)
+    KERNEL_MAIN_LOOP
     {
         Keyboard::handleKey();
         Console::update();

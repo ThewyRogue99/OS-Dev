@@ -1,13 +1,122 @@
 #include "String.h"
 
+String::String(int val)
+{
+	char buff[20];
+    itoa(val, buff, 10);
+
+	clear();
+	_str = new char[strlen(buff)];
+
+	strcpy((char*)_str, buff);
+}
+
+String::String(char val)
+{
+	clear();
+	char* ptr = new char[2];
+
+	ptr[0] = val;
+	ptr[1] = '\0';
+
+	_str = ptr;
+}
+
+String String::operator+(char val)
+{
+	size_t strLen = length();
+
+	char* ptr = new char[strLen + 2];
+	Memory::memcpy(ptr, _str, strLen);
+	clear();
+
+	ptr[strLen] = val;
+	ptr[strLen + 1] = '\0';
+
+	_str = ptr;
+
+	return *this;
+}
+
+String String::operator+(String str)
+{
+	return operator+(str.c_str());
+}
+
+String String::operator+(const char* str)
+{
+	size_t strLen = length();
+	char* ptr = new char[strLen + strlen(str) + 1];
+
+	Memory::memcpy(ptr, _str, strLen);
+	strcpy(ptr + strLen, str);
+
+	//TODO: Clear function aborts program
+	clear();
+
+	_str = ptr;
+
+	return *this;
+}
+
+void String::operator+=(char val)
+{
+	operator+(val);
+}
+
+void String::operator+=(String str)
+{
+    operator+(str);
+}
+
+void String::operator+=(const char* str)
+{
+    operator+(str);
+}
+
+void String::clear()
+{
+	if (_str != nullptr)
+	{
+		delete _str;
+		_str = nullptr;
+	}
+}
+
+char* String::strcpy(char* destination, const char* source)
+{
+    size_t len = strlen(source);
+
+    for(size_t i = 0; i < len; i++)
+        destination[i] = source[i];
+    
+    destination[len] = '\0';
+
+    return destination;
+}
+
+char* String::strncpy(char* destination, const char* source, size_t num)
+{
+    bool padding = false;
+
+    for(size_t i = 0; i < num; i++)
+    {
+        if(source[i] == '\0') padding = true;
+
+        destination[i] = padding ? 0 : source[i];
+    }
+
+    return destination;
+}
+
 void String::swap(char *x, char *y) 
 {
     char t = *x; *x = *y; *y = t;
 }
 
-int String::strlen(const char* str)
+size_t String::strlen(const char* str)
 {
-    int i;
+    size_t i;
     for(i = 0; str[i] != '\0'; i++);
     return i;
 }
